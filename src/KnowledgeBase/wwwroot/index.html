@@ -138,6 +138,22 @@
 
   </div>
 
+  <!-- Hidden until /api/sdp/health reports SDP is configured, so an estate
+       without ServiceDesk Plus never sees a dead panel. -->
+  <section class="section card" id="sdp-card" aria-label="Service desk tickets" hidden>
+    <div class="card__head">
+      <h2>Service desk</h2>
+      <p id="sdp-caption">Open tickets from ServiceDesk Plus</p>
+      <div class="topbar__spacer"></div>
+      <div class="segmented" role="group" aria-label="Ticket filter">
+        <button type="button" data-ticket-filter="critical" aria-pressed="true">Critical</button>
+        <button type="button" data-ticket-filter="overdue" aria-pressed="false">Overdue</button>
+        <button type="button" data-ticket-filter="unassigned" aria-pressed="false">Unassigned</button>
+      </div>
+    </div>
+    <div class="card__body card__body--flush"><div id="sdp-list"></div></div>
+  </section>
+
   <section class="section card" aria-label="Active alarms">
     <div class="card__head">
       <h2>Active alarms</h2>

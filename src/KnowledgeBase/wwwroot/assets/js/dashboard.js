@@ -17,6 +17,8 @@
     selectedFlowId: null,
     hours: 6,
     timer: null,
+    sdpEnabled: false,
+    ticketFilter: 'critical',
   };
 
   /* --------------------------------------------------------------- helpers */
@@ -426,6 +428,124 @@
       });
   }
 
+  /* --------------------------------------------------- service desk tickets */
+
+  var FILTER_CAPTIONS = {
+    critical: 'High and Urgent priority, still open',
+    overdue: 'Past their SLA due-by time',
+    unassigned: 'No technician assigned yet',
+  };
+
+  /* The panel stays hidden unless the server says SDP is configured. */
+  function initServiceDesk() {
+    core.getJson('api/sdp/health')
+      .then(function (health) {
+        if (!health || !health.configured) return;
+
+        $('sdp-card').hidden = false;
+        state.sdpEnabled = true;
+
+        Array.prototype.forEach.call(
+          document.querySelectorAll('[data-ticket-filter]'),
+          function (button) {
+            button.addEventListener('click', function () {
+              state.ticketFilter = button.getAttribute('data-ticket-filter');
+
+              Array.prototype.forEach.call(
+                document.querySelectorAll('[data-ticket-filter]'),
+                function (other) {
+                  other.setAttribute('aria-pressed',
+                    other === button ? 'true' : 'false');
+                });
+
+              loadTickets();
+            });
+          });
+
+        loadTickets();
+      })
+      .catch(function () {
+        // Health is advisory — an older build without /api/sdp just stays hidden.
+      });
+  }
+
+  function loadTickets() {
+    if (!state.sdpEnabled) return;
+
+    var host = $('sdp-list');
+    core.setBusy(host, 4);
+
+    $('sdp-caption').textContent = FILTER_CAPTIONS[state.ticketFilter] || '';
+
+    // Counts ride alongside the list so the buttons can show how much is behind
+    // each filter without three extra round trips.
+    core.getJson('api/sdp/summary')
+      .then(function (summary) {
+        if (!summary || !summary.reachable) return;
+        setFilterCount('critical', summary.critical);
+        setFilterCount('overdue', summary.overdue);
+        setFilterCount('unassigned', summary.unassigned);
+      })
+      .catch(function () { /* counts are a nicety, not a requirement */ });
+
+    core.getJson('api/sdp/tickets?limit=10&filter=' +
+                 encodeURIComponent(state.ticketFilter))
+      .then(function (tickets) {
+        if (!tickets.length) {
+          host.innerHTML =
+            '<div class="empty"><span class="dot dot--good"></span> ' +
+            'Nothing matches this filter right now.</div>';
+          return;
+        }
+
+        var html = '<div class="table-scroll"><table class="table">' +
+          '<thead><tr><th>Status</th><th>Ticket</th><th>Requester</th>' +
+          '<th>Technician</th><th class="num">Age</th></tr></thead><tbody>';
+
+        tickets.forEach(function (ticket) {
+          html += '<tr>' +
+            '<td>' + core.statusPill(ticket.severity, ticketLabel(ticket)) + '</td>' +
+            '<td class="truncate" title="' + core.escapeHtml(ticket.subject) + '">' +
+              ticketLink(ticket) + '</td>' +
+            '<td class="muted">' + core.escapeHtml(ticket.requester || '--') + '</td>' +
+            '<td class="muted">' +
+              (ticket.technician
+                ? core.escapeHtml(ticket.technician)
+                : '<em>Unassigned</em>') + '</td>' +
+            '<td class="num muted" style="white-space:nowrap">' +
+              core.escapeHtml(core.relativeTime(ticket.createdTime) || '--') + '</td>' +
+            '</tr>';
+        });
+
+        host.innerHTML = html + '</tbody></table></div>';
+      })
+      .catch(function (error) {
+        core.showError(host, error, 'Could not load service desk tickets');
+      });
+  }
+
+  /* Overdue outranks priority in the label, matching the severity mapping. */
+  function ticketLabel(ticket) {
+    if (ticket.isOverdue) return 'Overdue';
+    return ticket.priority || ticket.status || 'Open';
+  }
+
+  function ticketLink(ticket) {
+    var label = core.escapeHtml('#' + ticket.id + ' · ' + ticket.subject);
+    if (!ticket.url) return label;
+
+    return '<a href="' + core.escapeHtml(ticket.url) +
+      '" target="_blank" rel="noopener noreferrer">' + label + '</a>';
+  }
+
+  function setFilterCount(name, count) {
+    var button = document.querySelector('[data-ticket-filter="' + name + '"]');
+    if (!button || count == null) return;
+
+    var base = name.charAt(0).toUpperCase() + name.slice(1);
+    button.textContent = base + ' (' + core.formatNumber(count) + ')';
+  }
+
   /* ---------------------------------------------------------------- alarms */
 
   function loadAlarms() {
@@ -503,6 +623,7 @@
 
     loadSnmp();
     loadAlarms();
+    loadTickets();
   }
 
   function initControls() {
@@ -555,6 +676,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     core.init();
     initControls();
+    initServiceDesk();
     loadAll();
     initAutoRefresh();
   });

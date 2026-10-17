@@ -4,8 +4,9 @@ An internal web app that gives the IT team one place to answer two questions:
 **"is the network healthy right now?"** and **"how do I do this correctly?"**
 
 The front page is a live PRTG dashboard — NetFlow traffic, SNMP sensor health
-and active alarms. Behind it sits a searchable library of SOPs, runbooks,
-policies and reference material written in Markdown.
+and active alarms — plus an optional panel of open ServiceDesk Plus tickets.
+Behind it sits a searchable library of SOPs, runbooks, policies and reference
+material written in Markdown.
 
 Runs on **Windows Server 2019 / IIS** with **Windows Authentication**, so staff
 are signed in by their domain account with no login page to maintain.
@@ -42,6 +43,26 @@ The whole interface follows the operating system's light or dark setting, and
 each person can override it with the toggle in the top right:
 
 ![Dashboard in dark theme](docs/images/dashboard-dark.jpg)
+
+### The service desk panel answers "what is the team on the hook for?"
+
+Optional. When ServiceDesk Plus is configured, a panel pulls open tickets
+straight from SDP so a technician doesn't have to keep a second tab open:
+
+- **Critical** — High and Urgent priority, still open
+- **Overdue** — past their SLA due-by time, whatever the priority
+- **Unassigned** — nobody has picked them up yet
+
+Each button carries its own count, so the shape of the queue is visible before
+you click. Ticket numbers link straight into SDP.
+
+![Service desk tickets on the dashboard](docs/images/service-desk.jpg)
+
+Overdue outranks priority in the status colour, deliberately: a breached SLA is
+a harder fact than a priority somebody typed in at submission.
+
+The panel **hides itself entirely** when SDP isn't configured, so this stays a
+pure PRTG dashboard until you want otherwise.
 
 ### The knowledge base answers "how do I do this correctly?"
 
@@ -103,10 +124,13 @@ dependency-free, so the site works on an air-gapped network.
 it-knowledge-base/
 ├── src/KnowledgeBase/
 │   ├── Program.cs                 host, security headers, static files, auth
-│   ├── Endpoints/ApiEndpoints.cs  /api/me and /api/prtg/*
+│   ├── Endpoints/ApiEndpoints.cs  /api/me, /api/prtg/* and /api/sdp/*
 │   ├── Prtg/
 │   │   ├── PrtgClient.cs          typed PRTG API client, 15s response cache
 │   │   └── PrtgModels.cs          options + DTOs, PRTG status-code mapping
+│   ├── Sdp/
+│   │   ├── SdpClient.cs           ServiceDesk Plus client, OAuth token cache
+│   │   └── SdpModels.cs           options + DTOs, ticket severity mapping
 │   ├── appsettings.json           defaults (tracked — no secrets here)
 │   ├── appsettings.Production.example.json   template for the live token
 │   ├── web.config                 IIS: Windows Auth, .md MIME type, compression
@@ -243,6 +267,9 @@ All endpoints are read-only, require an authenticated user, and return JSON.
 | `GET /api/prtg/sensors/{id}/history?hours=6&avg=300` | Channel history |
 | `GET /api/prtg/sensors/{id}/toplists` | Toplists on a flow sensor |
 | `GET /api/prtg/sensors/{id}/toplists/{toplistId}` | Toplist rows |
+| `GET /api/sdp/health` | Whether ServiceDesk Plus is configured |
+| `GET /api/sdp/summary` | Open/critical/overdue/unassigned ticket counts |
+| `GET /api/sdp/tickets?filter=critical\|overdue\|unassigned&limit=10` | Matching tickets, worst first |
 
 PRTG failures come back as RFC 7807 problem documents — `503` when PRTG isn't
 configured, `502` when it rejects the credential or is unreachable, `504` on

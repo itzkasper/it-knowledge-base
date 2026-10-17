@@ -241,7 +241,118 @@ site but is the usual reason the NetFlow panel is empty.
 
 ---
 
-## 5. Verify
+## 5. Connect ServiceDesk Plus (optional)
+
+Skip this entirely if you don't want the ticket panel — leave the `Sdp` section
+out and the panel never appears.
+
+SDP Cloud uses Zoho OAuth 2.0. You generate a **refresh token** once; the app
+exchanges it for hourly access tokens on its own.
+
+### 5.1 Match your datacenter
+
+`Sdp:BaseUrl` and `Sdp:AccountsUrl` must be from the same region, or the token
+refresh fails with `invalid_client`:
+
+| Region | `Sdp:BaseUrl` | `Sdp:AccountsUrl` |
+|--------|---------------|-------------------|
+| US | `https://sdpondemand.manageengine.com` | `https://accounts.zoho.com` |
+| EU | `https://sdpondemand.manageengine.eu` | `https://accounts.zoho.eu` |
+| India | `https://sdpondemand.manageengine.in` | `https://accounts.zoho.in` |
+| Australia | `https://sdpondemand.manageengine.com.au` | `https://accounts.zoho.com.au` |
+| Japan | `https://sdpondemand.manageengine.jp` | `https://accounts.zoho.jp` |
+| Canada | `https://sdpondemand.manageengine.ca` | `https://accounts.zohocloud.ca` |
+
+The URL you use to log into SDP tells you which one you're on.
+
+### 5.2 Create a Self Client
+
+1. Go to <https://api-console.zoho.com> (signed in as an SDP admin) and choose
+   **Self Client** → *Create*.
+2. Copy the **Client ID** and **Client Secret**.
+3. On the **Generate Code** tab:
+   - **Scope:** `SDPOnDemand.requests.READ`
+   - **Time duration:** 10 minutes
+   - **Scope Description:** anything, e.g. `dashboard read-only`
+4. Click *Create* and copy the **code**. It expires in 10 minutes — do the next
+   step immediately.
+
+> The scope is deliberately read-only. The dashboard never writes to SDP, and
+> a leaked read-only token cannot close, reassign or delete a ticket.
+
+### 5.3 Exchange the code for a refresh token
+
+Run this on any machine, substituting your values:
+
+```powershell
+$accounts = 'https://accounts.zoho.com'    # must match your region above
+
+$response = Invoke-RestMethod -Method Post -Uri "$accounts/oauth/v2/token" -Body @{
+    grant_type    = 'authorization_code'
+    client_id     = 'YOUR-CLIENT-ID'
+    client_secret = 'YOUR-CLIENT-SECRET'
+    code          = 'CODE-FROM-STEP-5.2'
+}
+
+$response | Format-List
+```
+
+Copy the **`refresh_token`** from the output. It does not expire unless
+revoked, so you only do this once.
+
+> [!WARNING]
+> The `code` is single-use. If you get `invalid_code`, generate a fresh one —
+> re-running the command with the same code always fails.
+
+### 5.4 Configure the app
+
+Add the `Sdp` section to `appsettings.Production.json` (see
+`appsettings.Production.example.json` for the full annotated template):
+
+```json
+{
+  "Sdp": {
+    "BaseUrl": "https://sdpondemand.manageengine.com",
+    "AccountsUrl": "https://accounts.zoho.com",
+    "ClientId": "1000.XXXXXXXX",
+    "ClientSecret": "your-client-secret",
+    "RefreshToken": "1000.your-refresh-token",
+    "TicketUrlTemplate": "/app/itdesk/ui/requests/{id}/details",
+    "CriticalPriorities": [ "High", "Urgent" ],
+    "ClosedStatuses": [ "Closed", "Resolved", "Cancelled" ]
+  }
+}
+```
+
+Then `Restart-WebAppPool -Name 'KnowledgeBase'`.
+
+**Match your own names.** `CriticalPriorities` and `ClosedStatuses` are compared
+against the strings SDP returns. If your instance renames priorities (`P1`,
+`Critical`) or statuses (`Completed`), put those values here or the panel will
+filter incorrectly — silently, since nothing errors.
+
+Replace `itdesk` in `TicketUrlTemplate` with your portal name — it's the segment
+after `/app/` when you view a ticket in SDP.
+
+### 5.5 Check it
+
+```powershell
+Invoke-RestMethod 'http://localhost/api/sdp/summary' -UseDefaultCredentials
+```
+
+Expect `reachable: true` and counts. Common failures:
+
+| Response | Cause |
+|----------|-------|
+| `configured: false` | The `Sdp` section is missing a required value |
+| `invalid_client` | Client ID/secret from a different datacenter than `AccountsUrl` |
+| `invalid_code` | Refresh token revoked, or generated for different scopes |
+| HTTP 502 with "did not return JSON" | `RequestsPath` wrong — try `/app/{portal}/api/v3/requests` |
+| Counts all zero, tickets exist | `ClosedStatuses` doesn't match your status names |
+
+---
+
+## 6. Verify
 
 ```powershell
 # Proxy reachable and authenticated against PRTG
@@ -266,7 +377,7 @@ but the site isn't in the Local Intranet zone, or an SPN is missing.
 
 ---
 
-## 6. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
@@ -302,7 +413,7 @@ Turn it back off afterwards — it writes on every request and is not rotated.
 
 ---
 
-## 7. Adding documents after deployment
+## 8. Adding documents after deployment
 
 Authors drop `.md` files into `C:\inetpub\KnowledgeBase\wwwroot\content\<category>\`
 and then rebuild the index:

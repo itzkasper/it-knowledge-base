@@ -1,4 +1,5 @@
 using KnowledgeBase.Prtg;
+using KnowledgeBase.Sdp;
 using Microsoft.Extensions.Options;
 
 namespace KnowledgeBase.Endpoints;
@@ -209,6 +210,101 @@ public static class ApiEndpoints
             {
                 return Results.Problem(
                     title: "PRTG unreachable",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
+        });
+
+        return api;
+    }
+
+    // ------------------------------------------------- ServiceDesk Plus
+
+    public static RouteGroupBuilder MapSdpEndpoints(this RouteGroupBuilder api)
+    {
+        var sdp = api.MapGroup("/sdp");
+
+        // Lets the dashboard hide the panel entirely when SDP isn't set up,
+        // rather than showing a permanent error card.
+        sdp.MapGet("/health", (SdpClient client) =>
+            Results.Ok(new { configured = client.IsConfigured }));
+
+        // Counters for the panel's filter buttons.
+        sdp.MapGet("/summary", async (SdpClient client, CancellationToken ct) =>
+            Results.Ok(await client.GetSummaryAsync(ct)));
+
+        sdp.MapGet("/tickets", async (
+            string? filter, int? limit, SdpClient client, CancellationToken ct) =>
+        {
+            var selected = filter?.ToLowerInvariant() switch
+            {
+                "overdue" => SdpTicketFilter.Overdue,
+                "unassigned" => SdpTicketFilter.Unassigned,
+                "critical" or null or "" => SdpTicketFilter.Critical,
+                _ => (SdpTicketFilter?)null,
+            };
+
+            if (selected is null)
+            {
+                return Results.Problem(
+                    title: "Unknown filter",
+                    detail: "filter must be one of: critical, overdue, unassigned.",
+                    statusCode: StatusCodes.Status400BadRequest);
+            }
+
+            var tickets = await client.GetTicketsAsync(selected.Value, limit ?? 10, ct);
+            var options = client.Options;
+
+            return Results.Ok(tickets.Select(t => new
+            {
+                id = t.Id,
+                subject = t.Subject,
+                status = t.Status,
+                priority = t.Priority,
+                requester = t.Requester,
+                technician = t.Technician,
+                createdTime = t.CreatedTime,
+                dueByTime = t.DueByTime,
+                isOverdue = t.IsOverdue,
+                unassigned = t.IsUnassigned,
+                severity = t.Severity(options),
+                url = client.TicketUrl(t.Id),
+            }));
+        });
+
+        // Same treatment as PRTG: failures become clean problem documents the
+        // panel can render inline instead of a 500 that blanks the dashboard.
+        sdp.AddEndpointFilter(async (ctx, next) =>
+        {
+            try
+            {
+                return await next(ctx);
+            }
+            catch (SdpNotConfiguredException ex)
+            {
+                return Results.Problem(
+                    title: "ServiceDesk Plus is not configured",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+            catch (SdpApiException ex)
+            {
+                return Results.Problem(
+                    title: "ServiceDesk Plus request failed",
+                    detail: ex.Message,
+                    statusCode: StatusCodes.Status502BadGateway);
+            }
+            catch (TaskCanceledException) when (!ctx.HttpContext.RequestAborted.IsCancellationRequested)
+            {
+                return Results.Problem(
+                    title: "ServiceDesk Plus timed out",
+                    detail: "SDP did not respond in time.",
+                    statusCode: StatusCodes.Status504GatewayTimeout);
+            }
+            catch (HttpRequestException ex)
+            {
+                return Results.Problem(
+                    title: "ServiceDesk Plus unreachable",
                     detail: ex.Message,
                     statusCode: StatusCodes.Status502BadGateway);
             }

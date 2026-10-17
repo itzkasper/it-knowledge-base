@@ -1,5 +1,6 @@
 using KnowledgeBase.Endpoints;
 using KnowledgeBase.Prtg;
+using KnowledgeBase.Sdp;
 using Microsoft.AspNetCore.Server.IISIntegration;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Net.Http.Headers;
@@ -11,6 +12,10 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddOptions<PrtgOptions>()
     .Bind(builder.Configuration.GetSection(PrtgOptions.SectionName));
+
+builder.Services
+    .AddOptions<SdpOptions>()
+    .Bind(builder.Configuration.GetSection(SdpOptions.SectionName));
 
 builder.Services.AddMemoryCache();
 
@@ -44,6 +49,17 @@ builder.Services.AddHttpClient<PrtgClient>((sp, client) =>
 
         return handler;
     });
+
+// ------------------------------------------------------- ServiceDesk Plus client
+
+builder.Services.AddHttpClient<SdpClient>((sp, client) =>
+{
+    var opt = sp.GetRequiredService<IConfiguration>()
+        .GetSection(SdpOptions.SectionName).Get<SdpOptions>() ?? new SdpOptions();
+
+    client.Timeout = TimeSpan.FromSeconds(Math.Clamp(opt.TimeoutSeconds, 5, 120));
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("ITKnowledgeBase-Dashboard/1.0");
+});
 
 // ---------------------------------------------------------------- authentication
 
@@ -117,5 +133,6 @@ if (requireAuth) api = api.RequireAuthorization();
 
 api.MapIdentityEndpoints();
 api.MapPrtgEndpoints();
+api.MapSdpEndpoints();
 
 app.Run();
