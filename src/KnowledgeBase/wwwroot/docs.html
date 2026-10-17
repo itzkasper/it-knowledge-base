@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Knowledge base · City of Homestead IT</title>
+<meta name="description" content="Standard operating procedures and IT documentation.">
+<link rel="stylesheet" href="assets/css/app.css">
+<link rel="icon" href="assets/brand/favicon.svg" type="image/svg+xml">
+<link rel="alternate icon" href="assets/brand/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/brand/apple-touch-icon.png">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="index.html">
+    <svg class="brand__mark" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+      <rect class="tile" width="32" height="32" rx="7.5"/>
+      <g class="glyph" fill="none" stroke-width="3.2"
+         stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6.5 16.5 L16 9 L25.5 16.5"/>
+        <path d="M10.5 22.5 H21.5"/>
+      </g>
+    </svg>
+    <span class="brand__text">
+      <span class="brand__name">City of Homestead</span>
+      <span class="brand__sub">IT Knowledge Base</span>
+    </span>
+  </a>
+
+  <nav class="nav" aria-label="Main">
+    <a class="nav__link" href="index.html">Dashboard</a>
+    <a class="nav__link" href="docs.html">Knowledge base</a>
+  </nav>
+
+  <div class="topbar__spacer"></div>
+
+  <div class="topbar__meta">
+    <span data-user></span>
+    <button class="icon-button" data-theme-toggle type="button" aria-label="Switch theme" title="Switch theme">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<div class="docs-layout">
+
+  <aside class="sidebar" aria-label="Documents">
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+      </svg>
+      <label class="visually-hidden" for="search-input">Search documents</label>
+      <input id="search-input" type="search" placeholder="Search SOPs…  (press /)"
+             autocomplete="off" spellcheck="false">
+    </div>
+
+    <ul class="tree" id="tree"></ul>
+  </aside>
+
+  <main id="content"></main>
+
+</div>
+
+<script src="assets/js/core.js"></script>
+<script src="assets/js/markdown.js"></script>
+<script src="assets/js/docs.js"></script>
+</body>
+</html>

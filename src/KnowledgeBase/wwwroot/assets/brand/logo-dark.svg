@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 40" role="img"
+     aria-label="City of Homestead — IT Knowledge Base">
+  <title>City of Homestead — IT Knowledge Base</title>
+
+  <!--
+    Standalone lockup for dark backgrounds. The tile uses the dark step of the
+    brand teal (#14786e) rather than the light one, so it holds its edge
+    against a dark surface instead of glowing.
+
+    Original design, not the City's official seal.
+  -->
+
+  <g>
+    <rect y="4" width="32" height="32" rx="7.5" fill="#14786e"/>
+    <g fill="none" stroke="#ffffff" stroke-width="3.2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 20.5 L16 13 L25.5 20.5"/>
+      <path d="M10.5 26.5 H21.5"/>
+    </g>
+  </g>
+
+  <text x="44" y="22"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="15.5" font-weight="600" letter-spacing="-0.2" fill="#ffffff"
+        >City of Homestead</text>
+
+  <text x="44" y="34"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="10.5" font-weight="500" letter-spacing="0.6" fill="#c3c2b7"
+        >IT KNOWLEDGE BASE</text>
+</svg>

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img"
+     aria-label="City of Homestead">
+  <title>City of Homestead</title>
+
+  <!--
+    Theme-aware favicon. Browsers that support SVG favicons (Chrome, Edge,
+    Firefox) apply the media query and pick the dark step on a dark tab strip.
+    Anything older falls back to favicon.ico, which carries the light step.
+
+    The mark is an original design: a gable over two field rows — a homestead
+    on its land. It is NOT the City's official seal; swap this file if the
+    City's brand standards supply one.
+  -->
+  <style>
+    .tile  { fill: #116b63; }
+    .glyph { stroke: #ffffff; }
+    @media (prefers-color-scheme: dark) {
+      .tile { fill: #14786e; }
+    }
+  </style>
+
+  <rect class="tile" width="32" height="32" rx="7.5"/>
+
+  <g class="glyph" fill="none" stroke-width="3.2"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M6.5 16.5 L16 9 L25.5 16.5"/>
+    <path d="M10.5 22.5 H21.5"/>
+  </g>
+</svg>

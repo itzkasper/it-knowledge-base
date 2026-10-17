@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>KnowledgeBase</RootNamespace>
+    <AssemblyName>KnowledgeBase</AssemblyName>
+    <InvariantGlobalization>false</InvariantGlobalization>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    No NuGet packages by design: everything used here ships in the
+    Microsoft.AspNetCore.App shared framework, so the project restores and
+    builds on an air-gapped server with only the .NET 8 SDK present.
+  -->
+
+  <!--
+    wwwroot (markdown content included) is published by the Web SDK's default
+    Content globs. Declaring it again here raises NETSDK1022 "Duplicate
+    'Content' items were included", so it is deliberately not listed.
+  -->
+
+</Project>

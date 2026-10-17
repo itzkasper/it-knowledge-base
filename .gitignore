@@ -1,0 +1,27 @@
+# Build output
+bin/
+obj/
+publish/
+*.user
+*.suo
+
+# IIS / hosting
+logs/
+stdout*.log
+
+# Local overrides — keep server credentials out of the repository
+appsettings.Local.json
+appsettings.Production.json
+
+# Local reference captures of the UI — not part of the deployable site
+screenshots/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vs/
+.vscode/
+.idea/

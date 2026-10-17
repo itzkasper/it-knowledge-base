@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 236 40" role="img"
+     aria-label="City of Homestead — IT Knowledge Base">
+  <title>City of Homestead — IT Knowledge Base</title>
+
+  <!--
+    Standalone lockup for light backgrounds: intranet pages, documents, email
+    signatures, print. The website itself inlines the mark instead, so it can
+    follow the viewer's theme with CSS.
+
+    Original design, not the City's official seal.
+    Wordmark renders in the system UI sans (Segoe UI on Windows). Convert the
+    text to outlines if you need it pixel-identical across machines.
+  -->
+
+  <g>
+    <rect y="4" width="32" height="32" rx="7.5" fill="#116b63"/>
+    <g fill="none" stroke="#ffffff" stroke-width="3.2"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 20.5 L16 13 L25.5 20.5"/>
+      <path d="M10.5 26.5 H21.5"/>
+    </g>
+  </g>
+
+  <text x="44" y="22"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="15.5" font-weight="600" letter-spacing="-0.2" fill="#0b0b0b"
+        >City of Homestead</text>
+
+  <text x="44" y="34"
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-size="10.5" font-weight="500" letter-spacing="0.6" fill="#52514e"
+        >IT KNOWLEDGE BASE</text>
+</svg>
