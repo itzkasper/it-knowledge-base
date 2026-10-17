@@ -59,7 +59,14 @@ you click. Ticket numbers link straight into SDP.
 ![Service desk tickets on the dashboard](docs/images/service-desk.jpg)
 
 Overdue outranks priority in the status colour, deliberately: a breached SLA is
-a harder fact than a priority somebody typed in at submission.
+a harder fact than a priority somebody typed in at submission. In the view
+above, an Urgent ticket that has breached reads red while a plain High reads
+amber.
+
+Switching filter re-reads the same fetched ticket list rather than re-querying
+SDP, so it is instant and costs the service desk nothing:
+
+![The same panel filtered to unassigned tickets](docs/images/service-desk-unassigned.jpg)
 
 The panel **hides itself entirely** when SDP isn't configured, so this stays a
 pure PRTG dashboard until you want otherwise.
