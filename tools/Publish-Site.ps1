@@ -134,12 +134,17 @@ try {
 
     Write-Host "== Copying to $Destination ==" -ForegroundColor Cyan
 
-    # /MIR mirrors the tree. logs\ holds stdout logs written by the module and
-    # must not be deleted while IIS has a handle on it.
+    # /MIR mirrors the tree, which means it DELETES anything at the destination
+    # that isn't in the staging folder. Three things must survive that:
+    #   logs\                        - IIS holds a handle on it
+    #   appsettings.Production.json  - the live PRTG token; gitignored, so it
+    #                                  is never in the publish output
+    #   appsettings.Local.json       - same, for one-off local overrides
     $robocopyArgs = @(
         $staging, $Destination,
         '/MIR', '/NFL', '/NDL', '/NJH', '/NJS', '/NP', '/R:2', '/W:2',
-        '/XD', 'logs'
+        '/XD', 'logs',
+        '/XF', 'appsettings.Production.json', 'appsettings.Local.json'
     )
 
     & robocopy @robocopyArgs | Out-Null

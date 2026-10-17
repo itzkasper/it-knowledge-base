@@ -1,30 +1,81 @@
 # City of Homestead — IT Knowledge Base
 
-A small, modern internal site that hosts SOPs and IT documentation, with a PRTG
-dashboard on the front page showing NetFlow and SNMP data.
+An internal web app that gives the IT team one place to answer two questions:
+**"is the network healthy right now?"** and **"how do I do this correctly?"**
 
-Built to run on **Windows Server 2019 / IIS** with **Windows Authentication**.
+The front page is a live PRTG dashboard — NetFlow traffic, SNMP sensor health
+and active alarms. Behind it sits a searchable library of SOPs, runbooks,
+policies and reference material written in Markdown.
+
+Runs on **Windows Server 2019 / IIS** with **Windows Authentication**, so staff
+are signed in by their domain account with no login page to maintain.
 
 ---
 
 ## What it does
 
-**Dashboard** (`/`) — live from your PRTG core server:
+### The dashboard answers "what is happening on the network?"
 
-- Sensor counts by state, with the monitored total as the headline figure
-- Traffic by channel for any NetFlow / IPFIX / sFlow / jFlow sensor, over 1h to 7d
-- Top talkers, read from the sensor's PRTG toplist
-- SNMP sensors grouped by device, worst first
-- Active alarms, with paused sensors excluded
+Instead of logging into PRTG and navigating its tree, a technician opens one
+page and sees the whole estate at a glance:
 
-**Knowledge base** (`/docs.html`):
+- **Sensor health at a glance** — how many sensors are up, warning or down, with
+  the monitored total as the headline figure
+- **Traffic by channel** for any NetFlow / IPFIX / sFlow / jFlow sensor, over
+  1 hour to 7 days, with a hover crosshair giving exact values per channel
+- **Top talkers** — which hosts are consuming the link right now, read from the
+  sensor's PRTG toplist. This is the panel you want during a "the internet is
+  slow" call
+- **SNMP sensors grouped by device**, worst-affected device first
+- **Active alarms**, ordered by severity, with paused sensors excluded so
+  planned maintenance doesn't read as an outage
 
-- Markdown documents with YAML front matter, organised by category
-- Full-text search across titles, headings, tags and body text
-- Auto-generated table of contents, callouts, tables, task lists, code blocks
-- Deep-linkable headings; prints cleanly
+It refreshes every minute and stops polling when the tab is in the background.
 
-Light and dark themes follow the OS and can be toggled per person.
+![Dashboard — sensor health and NetFlow traffic](docs/images/dashboard-light.jpg)
+
+Top talkers and SNMP health sit below the traffic chart:
+
+![Dashboard — top talkers, SNMP sensors and active alarms](docs/images/dashboard-panels.jpg)
+
+The whole interface follows the operating system's light or dark setting, and
+each person can override it with the toggle in the top right:
+
+![Dashboard in dark theme](docs/images/dashboard-dark.jpg)
+
+### The knowledge base answers "how do I do this correctly?"
+
+Procedures live as Markdown files in a folder — no database, no CMS, no WYSIWYG
+editor to fight. Anyone comfortable with a text editor can write one, and the
+whole library is diffable and reviewable in Git.
+
+- **Organised by category** in a sidebar — SOPs, runbooks, network, policies,
+  reference
+- **Full-text search** across titles, headings, tags and body text, with the
+  matching terms highlighted
+- **Automatic table of contents**, so a long procedure stays navigable
+- **Callouts** for warnings and cautions, syntax-highlighted code blocks,
+  tables, task lists and cross-links between documents
+- **Deep-linkable headings** — send a colleague the exact step, not the document
+- **Prints cleanly**, for the procedures that have to exist on paper
+
+![A procedure in the knowledge base](docs/images/kb-article.jpg)
+
+Numbered steps with the commands to run, so a procedure can be followed exactly
+rather than approximately:
+
+![Procedure steps with PowerShell commands](docs/images/kb-article-procedure.jpg)
+
+Search ranks title matches above heading matches above body matches, so typing
+a procedure's name finds it immediately:
+
+![Full-text search across the knowledge base](docs/images/kb-search.jpg)
+
+### Why both in one place
+
+An alarm on the dashboard and the runbook that explains it are two clicks apart.
+`Triage a Down PRTG Sensor` is written to be read while looking at the very
+dashboard that is showing red.
 
 ---
 
@@ -56,7 +107,8 @@ it-knowledge-base/
 │   ├── Prtg/
 │   │   ├── PrtgClient.cs          typed PRTG API client, 15s response cache
 │   │   └── PrtgModels.cs          options + DTOs, PRTG status-code mapping
-│   ├── appsettings.json           PRTG connection settings
+│   ├── appsettings.json           defaults (tracked — no secrets here)
+│   ├── appsettings.Production.example.json   template for the live token
 │   ├── web.config                 IIS: Windows Auth, .md MIME type, compression
 │   └── wwwroot/
 │       ├── index.html             dashboard
@@ -73,6 +125,7 @@ it-knowledge-base/
 │           ├── index.json         generated search index
 │           ├── _template.md       starting point for a new document
 │           ├── sops/ runbooks/ network/ policies/ reference/
+├── docs/images/                   screenshots used in this README
 └── tools/
     ├── Build-DocsIndex.ps1        regenerate content/index.json
     ├── Build-Icons.py             regenerate favicon.ico/PNGs (only on rebrand)
@@ -94,7 +147,9 @@ Short version:
 2. Install the **.NET 8 Windows Hosting Bundle** (after IIS)
 3. Create the site and app pool, enable Windows Auth, disable Anonymous
 4. `.\tools\Publish-Site.ps1`
-5. Set `Prtg:BaseUrl` and `Prtg:ApiToken` in the deployed `appsettings.json`
+5. Copy `appsettings.Production.example.json` → `appsettings.Production.json`
+   on the server and fill in `BaseUrl` and `ApiToken`
+   (see [Keeping the live token out of Git](#keeping-the-live-token-out-of-git))
 
 ### Locally, to try it out
 
@@ -200,7 +255,8 @@ dashboards doesn't hammer the PRTG core.
 
 ## Configuration
 
-`appsettings.json`:
+Every key below can live in `appsettings.json` (defaults, tracked in Git) or
+`appsettings.Production.json` (per-server, gitignored — put the token there):
 
 | Key | Default | Purpose |
 |-----|---------|---------|
@@ -213,8 +269,56 @@ dashboards doesn't hammer the PRTG core.
 | `Prtg:TimeoutSeconds` | `20` | PRTG request timeout |
 | `Security:RequireAuthenticatedUser` | `true` | Set `false` only for local dev |
 
-Any value can be supplied as an environment variable instead, which keeps the
-token out of the file — `Prtg__ApiToken` maps to `Prtg:ApiToken`.
+### Keeping the live token out of Git
+
+`appsettings.json` is tracked, so the real PRTG token must never go in it.
+Use `appsettings.Production.json` instead — it is gitignored, and ASP.NET Core
+layers it on top of `appsettings.json` automatically because `web.config` sets
+`ASPNETCORE_ENVIRONMENT=Production`.
+
+On the web server, once:
+
+```powershell
+cd C:\inetpub\KnowledgeBase
+Copy-Item appsettings.Production.example.json appsettings.Production.json
+notepad appsettings.Production.json      # fill in BaseUrl and ApiToken
+Restart-WebAppPool -Name 'KnowledgeBase'
+```
+
+Only the keys that differ need to be present:
+
+```json
+{
+  "Prtg": {
+    "BaseUrl": "https://prtg.homestead.local",
+    "ApiToken": "your-read-only-token",
+    "AllowUntrustedCertificate": true
+  }
+}
+```
+
+`Publish-Site.ps1` mirrors with robocopy `/MIR`, which deletes anything at the
+destination that isn't in the publish output — so it explicitly excludes
+`appsettings.Production.json` and `appsettings.Local.json`. Your token survives
+a redeploy.
+
+If you'd rather keep the token out of files entirely, set it as an app pool
+environment variable:
+
+```powershell
+Set-ItemProperty 'IIS:\AppPools\KnowledgeBase' -Name processModel.environmentVariables `
+    -Value @{ 'Prtg__ApiToken' = 'your-read-only-token' }
+```
+
+The double underscore is the .NET section separator — `Prtg__ApiToken` maps to
+`Prtg:ApiToken`. Precedence, later winning:
+
+```
+appsettings.json  <  appsettings.Production.json  <  environment variables
+```
+
+Use a **read-only** PRTG account or API key either way. The dashboard never
+writes to PRTG.
 
 ---
 

@@ -153,17 +153,46 @@ dotnet publish .\src\KnowledgeBase\KnowledgeBase.csproj -c Release -o .\publish
 
 ## 4. Connect PRTG
 
-Edit `C:\inetpub\KnowledgeBase\appsettings.json`:
+**Do not put the token in `appsettings.json`** — that file is tracked in Git.
+Create `appsettings.Production.json` beside it instead. It is gitignored, it is
+excluded from the deploy mirror so it survives redeploys, and ASP.NET Core
+loads it automatically on top of `appsettings.json` because `web.config` sets
+`ASPNETCORE_ENVIRONMENT=Production`.
+
+```powershell
+cd C:\inetpub\KnowledgeBase
+Copy-Item appsettings.Production.example.json appsettings.Production.json
+notepad appsettings.Production.json
+```
+
+Only the keys that differ from the defaults need to be present:
 
 ```json
 {
   "Prtg": {
-    "BaseUrl": "https://prtg.yourdomain.local",
+    "BaseUrl": "https://prtg.homestead.local",
     "ApiToken": "ABCDEF1234567890",
-    "AllowUntrustedCertificate": true,
-    "CacheSeconds": 15
+    "AllowUntrustedCertificate": true
   }
 }
+```
+
+Then recycle so the new settings are read:
+
+```powershell
+Restart-WebAppPool -Name 'KnowledgeBase'
+```
+
+Lock the file down — it holds a credential:
+
+```powershell
+$acl = Get-Acl .\appsettings.Production.json
+$acl.SetAccessRuleProtection($true, $false)   # stop inheriting
+@('IIS AppPool\KnowledgeBase', 'Administrators', 'SYSTEM') | ForEach-Object {
+    $acl.AddAccessRule((New-Object System.Security.AccessControl.FileSystemAccessRule(
+        $_, 'Read', 'Allow')))
+}
+Set-Acl .\appsettings.Production.json $acl
 ```
 
 ### Getting credentials

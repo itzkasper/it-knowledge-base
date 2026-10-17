@@ -9,11 +9,14 @@ publish/
 logs/
 stdout*.log
 
-# Local overrides — keep server credentials out of the repository
+# Local overrides — keep server credentials out of the repository.
+# appsettings.Production.example.json IS tracked; copy it on the server and
+# fill in the real PRTG token. The filled-in copy below is never committed.
 appsettings.Local.json
 appsettings.Production.json
 
-# Local reference captures of the UI — not part of the deployable site
+# Scratch UI captures. The curated screenshots shown in README.md live in
+# docs/images/ and ARE tracked — this folder is just a working area.
 screenshots/
 
 # OS
